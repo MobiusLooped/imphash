@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/malwaredb/imphash"
+	"github.com/MobiusLooped/imphash"
 	"io/ioutil"
 	"os"
 	"fmt"
