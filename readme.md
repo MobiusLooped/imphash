@@ -1,3 +1,6 @@
+### Changes in this fork
+The original imphash.go file uses string concatenation that, when automated, creates massive memory allocation issues. These have been replaced with builder.String() to streamline and pare down memory required.
+
 ### ImpHash for Go
 
 * The imports are sorted by the library and function name, so re-ordering the imports doesn't change the import hash. However, that means the imports aren't the same as the `pefile` Python module, or other sources, such as VirusTotal.
