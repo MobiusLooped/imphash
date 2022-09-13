@@ -8,14 +8,15 @@ import (
 	"debug/pe"
 	"errors"
 	"fmt"
-	"github.com/glaslos/ssdeep"
 	"sort"
 	"strings"
+
+	"github.com/glaslos/ssdeep"
 )
 
 type ImpHashResult struct {
-	ImpHash string
-	ImpFuzzy string
+	ImpHash   string
+	ImpFuzzy  string
 	ImpString string
 }
 
@@ -29,7 +30,7 @@ func ImpHashFromBytes(fileContents []byte) (*ImpHashResult, error) {
 	if bytes.HasPrefix(fileContents, []byte{0xfe, 0xed, 0xfa, 0xce}) || // 32-bit
 		bytes.HasPrefix(fileContents, []byte{0xce, 0xfa, 0xed, 0xfe}) || // 32-bit, reverse ordering
 		bytes.HasPrefix(fileContents, []byte{0xfe, 0xed, 0xfa, 0xcf}) || // 64-bit
-		bytes.HasPrefix(fileContents, []byte{0xcf, 0xfa, 0xed, 0xfe}){ // 64-bit, reverse ordering
+		bytes.HasPrefix(fileContents, []byte{0xcf, 0xfa, 0xed, 0xfe}) { // 64-bit, reverse ordering
 		return impHashFromMachO(fileContents)
 	}
 	if bytes.HasPrefix(fileContents, []byte{0xca, 0xfe, 0xba, 0xbe}) {
@@ -73,34 +74,35 @@ func impHashFromPEBytes(fileContents []byte) (*ImpHashResult, error) {
 		dllFunc[dllName] = append(dllFunc[dllName], funcName)
 	}
 
-
 	for dllName := range dllFunc {
 		dllNames = append(dllNames, dllName)
 	}
 
 	sort.Strings(dllNames) // Gives a new ImpHash than Python's pefile, but now we don't care about reordering to evade ImpHash
-	impString := ""
+	builder := strings.Builder{}
 	for idx1, dllName := range dllNames {
 		sort.Strings(dllFunc[dllName])
 		for idx2, funcName := range dllFunc[dllName] {
 			if idx1+idx2 > 0 {
-				impString += ","
+				builder.WriteByte(',')
 			}
-			impString += dllName + "." + funcName
+			builder.Grow(len(dllName) + len(funcName) + 1)
+			builder.WriteString(dllName)
+			builder.WriteString(".")
+			builder.WriteString(funcName)
 		}
 	}
-
-	impHashes.ImpString = impString
-	impHashes.ImpHash = fmt.Sprintf("%x", md5.Sum([]byte(impString)))
+	impHashes.ImpHash = fmt.Sprintf("%x", md5.Sum([]byte(builder.String())))
 	for {
-		if len(impString) < 4096 {
-			impString += " "
+		if builder.Len() < 4096 {
+			builder.WriteString(" ")
 		} else {
 			break
 		}
 	}
-	impHashes.ImpFuzzy, _ = ssdeep.FuzzyBytes([]byte(impString))
-	impHashes.ImpString = impString
+	impHashes.ImpString = builder.String()
+	builder.Reset()
+	impHashes.ImpFuzzy, _ = ssdeep.FuzzyBytes([]byte(builder.String()))
 	return impHashes, nil
 }
 
@@ -133,15 +135,18 @@ func impHashFromELFBytes(fileContents []byte) (*ImpHashResult, error) {
 		libNames = append(libNames, lib)
 	}
 	sort.Strings(libNames)
-
+	builder := strings.Builder{}
 	impString := ""
 	for idx1, dllName := range libNames {
 		sort.Strings(libFunc[dllName])
 		for idx2, funcName := range libFunc[dllName] {
 			if idx1+idx2 > 0 {
-				impString += ","
+				builder.WriteByte(',')
 			}
-			impString += dllName + "." + funcName
+			builder.Grow(len(dllName) + len(funcName) + 1)
+			builder.WriteString(dllName)
+			builder.WriteString(".")
+			builder.WriteString(funcName)
 		}
 	}
 
@@ -151,11 +156,13 @@ func impHashFromELFBytes(fileContents []byte) (*ImpHashResult, error) {
 
 	for {
 		if len(impString) < 4096 {
-			impString += " "
+			builder.WriteString(" ")
 		} else {
 			break
 		}
 	}
+	impHashes.ImpString = builder.String()
+	builder.Reset()
 	impHashes.ImpFuzzy, _ = ssdeep.FuzzyBytes([]byte(impString))
 	return impHashes, nil
 }
