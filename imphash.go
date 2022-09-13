@@ -136,7 +136,6 @@ func impHashFromELFBytes(fileContents []byte) (*ImpHashResult, error) {
 	}
 	sort.Strings(libNames)
 	builder := strings.Builder{}
-	impString := ""
 	for idx1, dllName := range libNames {
 		sort.Strings(libFunc[dllName])
 		for idx2, funcName := range libFunc[dllName] {
@@ -155,7 +154,7 @@ func impHashFromELFBytes(fileContents []byte) (*ImpHashResult, error) {
 	impHashes.ImpString = impString
 
 	for {
-		if len(impString) < 4096 {
+		if builder.Len() < 4096 {
 			builder.WriteString(" ")
 		} else {
 			break
@@ -203,24 +202,29 @@ func impHashFromMachO(fileContents []byte) (*ImpHashResult, error) {
 	}
 	sort.Strings(libNames)
 
-	impString := ""
+	builder := strings.Builder {}
 	for idx, dllName := range libNames {
 		if idx > 0 {
-			impString += ","
+			builder.WriteByte(',')
 		}
-		impString += dllName
+			builder.Grow(len(dllName) + len(funcName) + 1)
+			builder.WriteString(dllName)
+			builder.WriteString(".")
+			builder.WriteString(funcName)
 	}
 
 	impHashes := &ImpHashResult{}
 	impHashes.ImpString = impString
 	impHashes.ImpHash = fmt.Sprintf("%x", md5.Sum([]byte(impString)))
 	for {
-		if len(impString) < 4096 {
-			impString += " "
+		if builder.Len() < 4096 {
+			builder.WriteString(" ")
 		} else {
 			break
 		}
 	}
+	impHashes.ImpString = builder.String()
+	builder.Reset()
 	impHashes.ImpFuzzy, _ = ssdeep.FuzzyBytes([]byte(impString))
 	return impHashes, nil
 }
@@ -263,24 +267,29 @@ func impHashFromFatMachO(fileContents []byte) (*ImpHashResult, error) {
 	}
 
 	sort.Strings(libNames)
-	impString := ""
+	builder := strings.Builder {}
 	for idx, dllName := range libNames {
 		if idx > 0 {
-			impString += ","
+			builder.WriteByte(',')
 		}
-		impString += dllName
+		builder.Grow(len(dllName) + len(funcName) + 1)
+		builder.WriteString(dllName)
+		builder.WriteString(".")
+		builder.WriteString(funcName)
 	}
 
 	impHashes := &ImpHashResult{}
 	impHashes.ImpString = impString
 	impHashes.ImpHash = fmt.Sprintf("%x", md5.Sum([]byte(impString)))
 	for {
-		if len(impString) < 4096 {
-			impString += " "
+		if builder.Len() < 4096 {
+			builder.WriteString(" ")
 		} else {
 			break
 		}
 	}
+	impHashes.ImpString = builder.String()
+	builder.Reset()
 	impHashes.ImpFuzzy, _ = ssdeep.FuzzyBytes([]byte(impString))
 	return impHashes, nil
 }
