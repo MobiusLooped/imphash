@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"sort"
 	"strings"
+	"sync"
 
 	"github.com/glaslos/ssdeep"
 )
@@ -37,6 +38,12 @@ func ImpHashFromBytes(fileContents []byte) (*ImpHashResult, error) {
 		return impHashFromFatMachO(fileContents)
 	}
 	return nil, errors.New("File type not supported")
+}
+
+var builderPool = sync.Pool{
+	New: func() any {
+		return new(strings.Builder)
+	},
 }
 
 func impHashFromPEBytes(fileContents []byte) (*ImpHashResult, error) {
@@ -79,7 +86,8 @@ func impHashFromPEBytes(fileContents []byte) (*ImpHashResult, error) {
 	}
 
 	sort.Strings(dllNames) // Gives a new ImpHash than Python's pefile, but now we don't care about reordering to evade ImpHash
-	builder := strings.Builder{}
+	builder := builderPool.Get().(*strings.Builder)
+	builder.Reset()
 	for idx1, dllName := range dllNames {
 		sort.Strings(dllFunc[dllName])
 		for idx2, funcName := range dllFunc[dllName] {
@@ -101,8 +109,10 @@ func impHashFromPEBytes(fileContents []byte) (*ImpHashResult, error) {
 		}
 	}
 	impHashes.ImpString = builder.String()
-	builder.Reset()
-	impHashes.ImpFuzzy, _ = ssdeep.FuzzyBytes([]byte(builder.String()))
+	impHashes.ImpFuzzy, _ = ssdeep.FuzzyBytes([]byte(impHashes.ImpString))
+
+	builderPool.Put(builder)
+
 	return impHashes, nil
 }
 
@@ -150,8 +160,7 @@ func impHashFromELFBytes(fileContents []byte) (*ImpHashResult, error) {
 	}
 
 	impHashes := &ImpHashResult{}
-	impHashes.ImpHash = fmt.Sprintf("%x", md5.Sum([]byte(impString)))
-	impHashes.ImpString = impString
+	impHashes.ImpHash = fmt.Sprintf("%x", md5.Sum([]byte(builder.String())))
 
 	for {
 		if builder.Len() < 4096 {
@@ -161,8 +170,10 @@ func impHashFromELFBytes(fileContents []byte) (*ImpHashResult, error) {
 		}
 	}
 	impHashes.ImpString = builder.String()
-	builder.Reset()
-	impHashes.ImpFuzzy, _ = ssdeep.FuzzyBytes([]byte(impString))
+	impHashes.ImpFuzzy, _ = ssdeep.FuzzyBytes([]byte(impHashes.ImpString))
+
+	builderPool.Put(builder)
+
 	return impHashes, nil
 }
 
@@ -202,20 +213,18 @@ func impHashFromMachO(fileContents []byte) (*ImpHashResult, error) {
 	}
 	sort.Strings(libNames)
 
-	builder := strings.Builder {}
+	builder := builderPool.Get().(*strings.Builder)
+	builder.Reset()
 	for idx, dllName := range libNames {
 		if idx > 0 {
 			builder.WriteByte(',')
 		}
-			builder.Grow(len(dllName) + len(funcName) + 1)
-			builder.WriteString(dllName)
-			builder.WriteString(".")
-			builder.WriteString(funcName)
+		builder.Grow(len(dllName) + 1)
+		builder.WriteString(dllName)
 	}
 
 	impHashes := &ImpHashResult{}
-	impHashes.ImpString = impString
-	impHashes.ImpHash = fmt.Sprintf("%x", md5.Sum([]byte(impString)))
+	impHashes.ImpHash = fmt.Sprintf("%x", md5.Sum([]byte(builder.String())))
 	for {
 		if builder.Len() < 4096 {
 			builder.WriteString(" ")
@@ -224,8 +233,10 @@ func impHashFromMachO(fileContents []byte) (*ImpHashResult, error) {
 		}
 	}
 	impHashes.ImpString = builder.String()
-	builder.Reset()
-	impHashes.ImpFuzzy, _ = ssdeep.FuzzyBytes([]byte(impString))
+	impHashes.ImpFuzzy, _ = ssdeep.FuzzyBytes([]byte(impHashes.ImpString))
+
+	builderPool.Put(builder)
+
 	return impHashes, nil
 }
 
@@ -267,20 +278,18 @@ func impHashFromFatMachO(fileContents []byte) (*ImpHashResult, error) {
 	}
 
 	sort.Strings(libNames)
-	builder := strings.Builder {}
+	builder := builderPool.Get().(*strings.Builder)
+	builder.Reset()
 	for idx, dllName := range libNames {
 		if idx > 0 {
 			builder.WriteByte(',')
 		}
-		builder.Grow(len(dllName) + len(funcName) + 1)
+		builder.Grow(len(dllName) + 1)
 		builder.WriteString(dllName)
-		builder.WriteString(".")
-		builder.WriteString(funcName)
 	}
 
 	impHashes := &ImpHashResult{}
-	impHashes.ImpString = impString
-	impHashes.ImpHash = fmt.Sprintf("%x", md5.Sum([]byte(impString)))
+	impHashes.ImpHash = fmt.Sprintf("%x", md5.Sum([]byte(builder.String())))
 	for {
 		if builder.Len() < 4096 {
 			builder.WriteString(" ")
@@ -289,7 +298,9 @@ func impHashFromFatMachO(fileContents []byte) (*ImpHashResult, error) {
 		}
 	}
 	impHashes.ImpString = builder.String()
-	builder.Reset()
-	impHashes.ImpFuzzy, _ = ssdeep.FuzzyBytes([]byte(impString))
+	impHashes.ImpFuzzy, _ = ssdeep.FuzzyBytes([]byte(impHashes.ImpString))
+
+	builderPool.Put(builder)
+
 	return impHashes, nil
 }
