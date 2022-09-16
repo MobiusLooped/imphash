@@ -11,7 +11,8 @@ import (
 	"sort"
 	"strings"
 	"sync"
-
+	
+	"github.com/yalue/elf_reader"
 	"github.com/glaslos/ssdeep"
 )
 
