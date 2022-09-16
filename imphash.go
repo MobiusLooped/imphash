@@ -116,7 +116,39 @@ func impHashFromPEBytes(fileContents []byte) (*ImpHashResult, error) {
 	return impHashes, nil
 }
 
+func sanityCheck(content []byte) error {
+	e, err := elf_reader.ParseELFFile(content)
+	if err != nil {
+		return fmt.Errorf("parsing ELF: %w", err)
+	}
+
+	var sum uint64
+
+	for i := uint16(0); i < e.GetSectionCount(); i++ {
+		hdr, err := e.GetSectionHeader(i)
+		if err != nil {
+			return fmt.Errorf("getting header for section %d: %w", i, err)
+		}
+
+		if hdr.GetSize() > uint64(len(content)) {
+			return fmt.Errorf("section %d too large: %d > %d", i, hdr.GetSize(), len(content))
+		}
+
+		sum += hdr.GetSize()
+		if sum > uint64(len(content)) {
+			return fmt.Errorf("sections up to %d too large: %d > %d", i, sum, len(content))
+		}
+	}
+
+	return nil
+}
+
 func impHashFromELFBytes(fileContents []byte) (*ImpHashResult, error) {
+	err := sanityCheck(fileContents)
+	if err != nil {
+		return nil, err
+	}
+		
 	fileReader := bytes.NewReader(fileContents)
 	e, err := elf.NewFile(fileReader)
 	if err != nil {
@@ -124,7 +156,7 @@ func impHashFromELFBytes(fileContents []byte) (*ImpHashResult, error) {
 	}
 
 	defer e.Close()
-
+	
 	libs, err := e.ImportedSymbols()
 	if err != nil {
 		return nil, err
