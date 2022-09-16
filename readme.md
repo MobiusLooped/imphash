@@ -1,5 +1,7 @@
 ### Changes in this fork
-The original imphash.go file uses string concatenation that, when automated, creates massive memory allocation issues. These have been replaced with builder.String() to streamline and pare down memory required.
+
+* The original imphash.go file uses string concatenation that, when automated, creates massive memory allocation issues. These have been replaced with builder.String() to streamline and pare down memory required. When running against large batches, memory use generally hovers between 600MB - 1GB; original memory use regularly crashed the parser on systems with 80GB of RAM.
+* Due to an issue with how memory is allocated, a bug was discovered when attempting to parse ELF files that had been malformed. There is now a check against the actual section sizes of the file (as opposed to trusting the size listed in the file headers).
 
 ### ImpHash for Go
 
