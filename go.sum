@@ -1,0 +1,10 @@
+github.com/MobiusLooped/imphash v0.1.2-alpha h1:kSoJVhraTtPk8BYcAE7ipDrbhlNHyjFw85C3x9p/pTo=
+github.com/MobiusLooped/imphash v0.1.2-alpha/go.mod h1:D/eGIijC2DoXXlXaY9kaBAGJxnarXfG76Ztto7BapWI=
+github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
+github.com/glaslos/ssdeep v0.3.2 h1:zvrj04/Wwhpv1JyYDC+bGzsVX3Gs0CwaLQ/w3VHs+SM=
+github.com/glaslos/ssdeep v0.3.2/go.mod h1:04PaN40+DUokVJ6JqCJbSWr1Tm7E4toyUsvM8ujtZv4=
+github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
+github.com/stretchr/testify v1.7.1 h1:5TQK59W5E3v0r2duFAb7P95B6hEeOyEnHRa8MjYSMTY=
+github.com/yalue/elf_reader v1.0.0 h1:mJgyV2pk7Lm5BEfVbGrecaMLx6ZZuB/y8eAGm1Gln48=
+github.com/yalue/elf_reader v1.0.0/go.mod h1:2WMcv9f54UGq8H2MU4EHstdkSl0L0v2AycubDcDtpVU=
+gopkg.in/yaml.v3 v3.0.0-20220512140231-539c8e751b99 h1:dbuHpmKjkDzSOMKAWl10QNlgaZUd3V1q99xc81tt2Kc=
